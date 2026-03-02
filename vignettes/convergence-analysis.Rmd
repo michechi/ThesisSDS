@@ -1,0 +1,51 @@
+---
+title: "Convergence Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Convergence Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+This vignette demonstrates how to evaluate the convergence behaviour of the
+MFM-SBM collapsed Gibbs sampler across increasing sample sizes.
+
+## Running the Convergence Test
+
+```{r}
+library(mfmsbm)
+
+n_vec <- seq(20, 100, 20)
+
+ri <- convergence_test(
+  K = 2, a = 1, b = 1, gamma_ = 1, lambda = 1,
+  p = 0.5, q = 0.1, n_vec = n_vec,
+  N = 10, K_start = 9, M = 350, burn_in = 100,
+  type_network = "unbalanced"
+)
+```
+
+## Visualizing Results
+
+```{r}
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
+  df <- data.frame(n = n_vec, rand_index = ri)
+  ggplot(df, aes(x = n, y = rand_index)) +
+    geom_point() +
+    geom_line() +
+    ylim(0, 1) +
+    labs(x = "Sample size (n)", y = "Average Rand Index") +
+    theme_bw()
+}
+```

@@ -1,0 +1,86 @@
+---
+title: "Core-Periphery Structure"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Core-Periphery Structure}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+This vignette explores the behaviour of the MFM-SBM algorithm on networks
+with a core-periphery structure, where the block probability matrix does not
+follow the standard assortative pattern.
+
+## Generating a Core-Periphery Network
+
+```{r}
+library(mfmsbm)
+
+V <- 50
+K <- 2
+
+# Core-periphery block matrix (non-assortative)
+Q <- matrix(0.3, K, K)
+Q[1, 1] <- 0.4
+Q[2, 2] <- 0.1
+Q[1, 2] <- Q[2, 1] <- 0.4
+
+nk <- V / K
+z_0 <- c(rep(1, nk), rep(2, nk))
+
+# Generate adjacency matrix
+set.seed(123)
+Y <- matrix(0L, V, V)
+for (row in 1:V) {
+  for (col in row:V) {
+    if (row != col) {
+      Y[row, col] <- rbinom(1, 1, Q[z_0[row], z_0[col]])
+    }
+  }
+}
+Y <- mfmsbm:::.symmetrize_matrix(Y)
+diag(Y) <- 0
+```
+
+## Running the Gibbs Sampler
+
+```{r}
+K_start <- 9
+a <- b <- gamma_ <- 1
+gamma_gn <- 0.5
+N_iter <- 15000
+burn_in <- 5000
+
+z_start <- c(sample(1:K_start, K_start), sample(1:K_start, V - K_start, replace = TRUE))
+
+# Gnedin prior
+fit_gn <- cogibbs_gnedin(N_iter, K_start, Y, V, a, b, gamma_, gamma_gn, z_start)
+cc_gn <- coclustering_matrix(fit_gn$z_post[, (burn_in + 1):N_iter])
+
+# Poisson prior
+logVn <- log_vn_miller(gamma_, V, V + 10, lambda = 1)
+fit_po <- cogibbs_poisson(N_iter, K_start, Y, V, a, b, gamma_, logVn, z_start)
+cc_po <- coclustering_matrix(fit_po$z_post[, (burn_in + 1):N_iter])
+```
+
+## Results
+
+```{r}
+if (requireNamespace("mcclust.ext", quietly = TRUE)) {
+  memb_gn <- mcclust.ext::minVI(cc_gn, method = "avg", max.k = 20)$cl
+  memb_po <- mcclust.ext::minVI(cc_po, method = "avg", max.k = 20)$cl
+
+  cat("Gnedin K_hat:", length(unique(memb_gn)), "\n")
+  cat("Poisson K_hat:", length(unique(memb_po)), "\n")
+}
+```

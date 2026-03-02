@@ -1,0 +1,40 @@
+Package: mfmsbm
+Title: Collapsed Gibbs Sampler for Mixture of Finite Mixtures of Stochastic Block Models
+Version: 0.1.0
+Authors@R:
+    person("Michele", "Chinì", , "michele.chini@edu.unito.it", role = c("aut", "cre"),
+           comment = c(ORCID = ""))
+Description: Implements a collapsed Gibbs sampler for Bayesian community detection
+    in networks using Mixture of Finite Mixtures of Stochastic Block Models (MFM-SBM).
+    Supports both zero-truncated Poisson and Gnedin priors on the number of components.
+    Includes functions for network generation, post-processing of MCMC output,
+    sensitivity analysis, and convergence diagnostics. Based on the methodology
+    described in Geng et al. (2019) <doi:10.1080/01621459.2018.1458618>.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.1
+Depends:
+    R (>= 3.5.0)
+Imports:
+    extraDistr,
+    stats
+Suggests:
+    igraph,
+    mcclust.ext,
+    fossil,
+    ggplot2,
+    pheatmap,
+    RColorBrewer,
+    gridExtra,
+    grid,
+    cowplot,
+    coda,
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+LazyData: true
+URL: https://github.com/Mich9534/mfmsbm
+BugReports: https://github.com/Mich9534/mfmsbm/issues

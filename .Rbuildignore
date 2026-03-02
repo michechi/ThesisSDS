@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^_archive$
+^LICENSE\.md$
+^\.github$
+^SDSThesis\.pdf$
+^Simulazioni\.ods$
+^.*\.png$
+^README\.Rmd$

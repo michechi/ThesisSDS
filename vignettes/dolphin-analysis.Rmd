@@ -1,0 +1,69 @@
+---
+title: "Dolphin Social Network Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Dolphin Social Network Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## The Dolphin Dataset
+
+The dolphin social network consists of 62 bottlenose dolphins from Doubtful
+Sound, New Zealand. Edges represent frequent associations between individuals.
+
+```{r}
+library(mfmsbm)
+data(dolphin)
+
+A <- dolphin$A
+Z0 <- dolphin$Z0
+n <- nrow(A)
+```
+
+## MFM-SBM with Poisson Prior
+
+```{r}
+M <- 20000
+BI <- 10000
+a <- b <- gamma_ <- 1
+lambda <- 1
+K_start <- 9
+
+logVn <- log_vn_miller(gamma_, n, n + 10, lambda)
+z_start <- c(sample(1:K_start, K_start), sample(1:K_start, n - K_start, replace = TRUE))
+fit_po <- cogibbs_poisson(M, K_start, A, n, a, b, gamma_, logVn, z_start)
+
+cc_po <- coclustering_matrix(fit_po$z_post[, (BI + 1):M])
+```
+
+## MFM-SBM with Gnedin Prior
+
+```{r}
+fit_gn <- cogibbs_gnedin(M, K_start, A, n, a, b, gamma_, gamma_gn = 0.1, z_start)
+
+cc_gn <- coclustering_matrix(fit_gn$z_post[, (BI + 1):M])
+```
+
+## Point Estimation and Comparison
+
+```{r}
+if (requireNamespace("mcclust.ext", quietly = TRUE) &&
+    requireNamespace("fossil", quietly = TRUE)) {
+  memb_po <- mcclust.ext::minVI(cc_po, method = "avg", max.k = 20)$cl
+  memb_gn <- mcclust.ext::minVI(cc_gn, method = "avg", max.k = 20)$cl
+
+  cat("Poisson - K_hat:", length(unique(memb_po)),
+      "RI:", fossil::compare(memb_po, Z0, method = "rand"), "\n")
+  cat("Gnedin  - K_hat:", length(unique(memb_gn)),
+      "RI:", fossil::compare(memb_gn, Z0, method = "rand"), "\n")
+}
+```

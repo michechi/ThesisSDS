@@ -1,0 +1,78 @@
+---
+title: "Simulation Studies"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Simulation Studies}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+This vignette replicates the simulation studies from the thesis, comparing the
+MFM-SBM algorithm against the Louvain method for community detection.
+
+## MFM-SBM vs Louvain
+
+```{r}
+library(mfmsbm)
+
+n <- 100
+K <- 2
+p <- 0.5
+q <- 0.1
+M <- 600
+BI <- 300
+N <- 20
+gamma_ <- a <- b <- 1
+lambda <- 1
+K_start <- 9
+
+K_mfm <- K_louv <- RI_mfm <- RI_louv <- rep(NA, N)
+
+for (i in seq_len(N)) {
+  data_gen <- generate_sbm(n, K, p, q, "balanced")
+  A <- data_gen$A0
+  Z0 <- data_gen$z0
+
+  # MFM-SBM
+  z_start <- c(sample(1:K_start, K_start), sample(1:K_start, n - K_start, replace = TRUE))
+  logVn <- log_vn_miller(gamma_, n, n + 10, lambda)
+  fit <- cogibbs_poisson(M, K_start, A, n, a, b, gamma_, logVn, z_start)
+  K_mfm[i] <- find_mode(fit$num_k[-seq_len(BI)])
+
+  cc <- coclustering_matrix(fit$z_post[, (BI + 1):M])
+  if (requireNamespace("mcclust.ext", quietly = TRUE) &&
+      requireNamespace("fossil", quietly = TRUE)) {
+    memb <- mcclust.ext::minVI(cc, method = "avg", max.k = 20)$cl
+    RI_mfm[i] <- fossil::compare(memb, Z0, method = "rand")
+  }
+
+  # Louvain
+  if (requireNamespace("igraph", quietly = TRUE)) {
+    net <- igraph::graph_from_adjacency_matrix(A, mode = "undirected")
+    louv <- igraph::cluster_louvain(net)$membership
+    K_louv[i] <- length(unique(louv))
+    if (requireNamespace("fossil", quietly = TRUE)) {
+      RI_louv[i] <- fossil::compare(louv, Z0, method = "rand")
+    }
+  }
+}
+```
+
+## Results
+
+```{r}
+cat("MFM-SBM - Mean K_hat:", mean(K_mfm, na.rm = TRUE),
+    "Mean RI:", mean(RI_mfm, na.rm = TRUE), "\n")
+cat("Louvain - Mean K_hat:", mean(K_louv, na.rm = TRUE),
+    "Mean RI:", mean(RI_louv, na.rm = TRUE), "\n")
+```

@@ -1,0 +1,71 @@
+---
+title: "Introduction to mfmsbm"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to mfmsbm}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+The **mfmsbm** package implements a collapsed Gibbs sampler for Bayesian
+community detection in networks using the Mixture of Finite Mixtures of
+Stochastic Block Models (MFM-SBM) framework. It supports two priors on the
+number of components:
+
+- **Zero-truncated Poisson** (Miller and Harrison, 2018)
+- **Gnedin** (Gnedin, 2010)
+
+## Quick Start
+
+### Generate a synthetic network
+
+```{r}
+library(mfmsbm)
+
+set.seed(42)
+sbm <- generate_sbm(n = 100, K = 3, p = 0.5, q = 0.1, type_network = "balanced")
+```
+
+### Run the Gibbs sampler (Poisson prior)
+
+```{r}
+gamma_ <- 1
+n <- 100
+logVn <- log_vn_miller(gamma_, n, n + 10, lambda = 1)
+z_start <- c(sample(1:9, 9), sample(1:9, n - 9, replace = TRUE))
+
+fit <- cogibbs_poisson(
+  M = 500, K_start = 9, A = sbm$A0, n = n,
+  a = 1, b = 1, gamma_ = gamma_, logVn_miller = logVn, z_start = z_start
+)
+```
+
+### Post-processing
+
+```{r}
+burn_in <- 200
+cc <- coclustering_matrix(fit$z_post[, (burn_in + 1):500])
+
+# Point estimate using VI minimization (requires mcclust.ext)
+if (requireNamespace("mcclust.ext", quietly = TRUE)) {
+  memb <- mcclust.ext::minVI(cc, method = "avg", max.k = 20)$cl
+  table(memb)
+}
+```
+
+## References
+
+- Geng, J., Bhattacharya, A., and Pati, D. (2019). "Probabilistic community
+  detection with unknown number of communities." *JASA*, 114(526), 893--905.
+- Miller, J. W. and Harrison, M. T. (2018). "Mixture models with a prior on
+  the number of components." *JASA*, 113(521), 340--356.

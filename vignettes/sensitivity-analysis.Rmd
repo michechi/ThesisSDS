@@ -1,0 +1,55 @@
+---
+title: "Sensitivity Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Sensitivity Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  eval = FALSE
+)
+```
+
+## Overview
+
+This vignette demonstrates how to conduct a sensitivity analysis to assess
+the impact of the prior hyperparameters on the MFM-SBM community detection.
+
+## Running the Sensitivity Analysis
+
+```{r}
+library(mfmsbm)
+
+sa <- sensitivity_analysis(
+  n = 100, N = 10, M = 300, K = 2, K_start = 9,
+  p = 0.5, q = 0.1, a = 1, b = 1, gamma_ = 1, BI = 150,
+  par_po = seq(1, 9, 2),
+  par_gn = seq(0.1, 0.9, 0.2),
+  type_network = "unbalanced"
+)
+```
+
+## Visualizing Results
+
+```{r}
+if (requireNamespace("ggplot2", quietly = TRUE)) {
+  library(ggplot2)
+
+  # K-hat for Poisson prior across lambda values
+  df_po <- data.frame(
+    k_hat = as.vector(sa$k_es.po),
+    lambda = rep(seq(1, 9, 2), each = nrow(sa$k_es.po))
+  )
+  df_po$lambda <- as.factor(df_po$lambda)
+
+  ggplot(df_po, aes(x = lambda, y = k_hat)) +
+    geom_boxplot() +
+    labs(x = "Poisson lambda", y = "Estimated K") +
+    theme_bw()
+}
+```
